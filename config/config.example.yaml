@@ -1,0 +1,23 @@
+server:
+  port: ":8080"
+gin:
+  mode: debug # debug / release
+
+# 默认使用 SQLite，零依赖即可启动；切到 mysql 时把 driver 改成 mysql 并填好连接信息
+db:
+  driver: sqlite # sqlite / mysql
+  sqlite_dsn: "go-user-service.db" # 测试中会用 :memory: 覆盖
+  hostname: 127.0.0.1
+  port: 3306
+  username: "" # 从环境变量 DB_USERNAME 读取
+  password: "" # 从环境变量 DB_PASSWORD 读取，禁止把真实密码写入此文件
+  dbname: go-user-service
+
+jwt:
+  # 从环境变量 JWT_SECRET 读取；留空时每次启动生成临时随机密钥（重启后旧 token 失效）
+  secret: ""
+
+cors:
+  # 生产环境应改为明确的前端域名列表，例如 ["https://app.example.com"]
+  allowed_origins:
+    - "*"

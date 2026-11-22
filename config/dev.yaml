@@ -1,0 +1,24 @@
+server:
+  port: ":8080"
+gin:
+  mode: debug # debug / release
+
+# 安全默认配置：SQLite 免密免安装，开箱即跑。
+# 需连 MySQL 或自定义密钥时，复制本文件为 dev.local.yaml 再改（该文件已被 gitignore），
+# 或通过环境变量 DB_USERNAME / DB_PASSWORD / JWT_SECRET 注入。
+db:
+  driver: sqlite # sqlite / mysql
+  sqlite_dsn: "go-user-service.db" # 测试中会用 :memory: 覆盖
+  hostname: 127.0.0.1
+  port: 3306
+  username: ""
+  password: ""
+  dbname: go-user-service
+
+jwt:
+  secret: "" # 留空时启动自动生成临时随机密钥；生产必须通过 JWT_SECRET 注入
+
+# 跨域允许来源，逗号分隔；"*" 表示允许任意来源（此时不携带凭证）
+cors:
+  allowed_origins:
+    - "*"

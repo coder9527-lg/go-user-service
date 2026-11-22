@@ -1,0 +1,18 @@
+# 构建上下文只保留编译所需内容，显著减小上传体积、避免缓存污染
+.git
+.gomodcache
+.gocache
+.gopath
+bin
+*.db
+*.sqlite
+coverage.out
+*.md
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+.github
+.idea
+.vscode
+.DS_Store

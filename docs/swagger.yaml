@@ -1,0 +1,210 @@
+basePath: /api/v1
+definitions:
+  common.TokenPair:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        description: access token 有效期（秒）
+        type: integer
+      refresh_token:
+        type: string
+    type: object
+  controller.loginRequest:
+    properties:
+      password:
+        type: string
+      phone:
+        type: string
+    type: object
+  controller.meResult:
+    properties:
+      id:
+        example: 1
+        type: integer
+      name:
+        example: alice
+        type: string
+      phone:
+        example: "13800000001"
+        type: string
+    type: object
+  controller.refreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  controller.refreshResult:
+    properties:
+      access_token:
+        example: eyJhbGciOi...
+        type: string
+    type: object
+  controller.registerRequest:
+    properties:
+      name:
+        type: string
+      password:
+        type: string
+      phone:
+        type: string
+    type: object
+  controller.registerResult:
+    properties:
+      id:
+        example: 1
+        type: integer
+      name:
+        example: alice
+        type: string
+      phone:
+        example: "13800000001"
+        type: string
+    type: object
+  controller.response:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Gin + GORM 分层架构练习项目，提供注册、登录、令牌刷新与用户信息接口。
+  title: go-user-service 用户服务 API
+  version: "1.0"
+paths:
+  /users/login:
+    post:
+      consumes:
+      - application/json
+      description: 校验密码后下发 access/refresh 双令牌
+      parameters:
+      - description: 登录信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controller.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.response'
+            - properties:
+                data:
+                  $ref: '#/definitions/common.TokenPair'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.response'
+      summary: 用户登录
+      tags:
+      - 用户
+  /users/me:
+    get:
+      description: 凭 access token 返回当前用户信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.response'
+            - properties:
+                data:
+                  $ref: '#/definitions/controller.meResult'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.response'
+      security:
+      - BearerAuth: []
+      summary: 获取当前登录用户
+      tags:
+      - 用户
+  /users/refresh:
+    post:
+      consumes:
+      - application/json
+      description: 用 refresh token 换取新的 access token
+      parameters:
+      - description: 刷新令牌
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controller.refreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.response'
+            - properties:
+                data:
+                  $ref: '#/definitions/controller.refreshResult'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.response'
+      summary: 刷新 access token
+      tags:
+      - 用户
+  /users/register:
+    post:
+      consumes:
+      - application/json
+      description: 手机号+密码注册，密码以 bcrypt 哈希存储
+      parameters:
+      - description: 注册信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controller.registerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.response'
+            - properties:
+                data:
+                  $ref: '#/definitions/controller.registerResult'
+              type: object
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/controller.response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/controller.response'
+      summary: 用户注册
+      tags:
+      - 用户
+securityDefinitions:
+  BearerAuth:
+    description: 输入 Bearer <access_token>
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

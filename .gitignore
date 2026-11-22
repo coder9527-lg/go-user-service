@@ -1,0 +1,29 @@
+# 二进制与本地运行产物
+/go-user-service
+*.exe
+*.db
+*.sqlite
+
+# 本地配置（可能含密码/密钥，只提交 config.example.yaml 模板）
+config/dev.local.yaml
+config/*.local.yaml
+.env
+.env.*
+
+# 本地 Go 缓存（沙箱/离线构建用，勿提交）
+/.gomodcache/
+/.gocache/
+/.gopath/
+/.golangci-cache/
+
+# Makefile 构建产物
+/bin/
+coverage.out
+
+# 编辑器与系统文件
+.idea/
+.vscode/
+.DS_Store
+
+# 日志
+*.log
