@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -18,13 +18,11 @@ var healthCmd = &cobra.Command{
 		client := &http.Client{Timeout: 2 * time.Second}
 		resp, err := client.Get("http://" + addr + "/ping")
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "health check failed:", err)
-			os.Exit(1)
+			return fmt.Errorf("health check failed: %w", err)
 		}
 		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode != http.StatusOK {
-			fmt.Fprintln(os.Stderr, "unexpected status:", resp.StatusCode)
-			os.Exit(1)
+			return errors.New("unexpected status: " + resp.Status)
 		}
 		fmt.Println("ok")
 		return nil

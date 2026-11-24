@@ -138,3 +138,36 @@ func TestGetByID(t *testing.T) {
 		t.Fatalf("expected ErrUserNotFound, got %v", err)
 	}
 }
+
+func TestRefresh(t *testing.T) {
+	s := setupServiceDB(t)
+	if _, err := s.Register(RegisterInput{Phone: "13800000008", Password: "secret123"}); err != nil {
+		t.Fatalf("register failed: %v", err)
+	}
+	pair, err := s.Login(LoginInput{Phone: "13800000008", Password: "secret123"})
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	t.Run("valid refresh token issues new access token", func(t *testing.T) {
+		access, err := s.Refresh(pair.RefreshToken)
+		if err != nil || access == "" {
+			t.Fatalf("expected new access token, got err=%v token=%q", err, access)
+		}
+		if access == pair.AccessToken {
+			t.Fatal("refreshed access token should differ from the original")
+		}
+	})
+
+	t.Run("access token cannot be used to refresh", func(t *testing.T) {
+		if _, err := s.Refresh(pair.AccessToken); !errors.Is(err, ErrInvalidToken) {
+			t.Fatalf("expected ErrInvalidToken, got %v", err)
+		}
+	})
+
+	t.Run("garbage token is rejected", func(t *testing.T) {
+		if _, err := s.Refresh("not-a-jwt"); !errors.Is(err, ErrInvalidToken) {
+			t.Fatalf("expected ErrInvalidToken, got %v", err)
+		}
+	})
+}
