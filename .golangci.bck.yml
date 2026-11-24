@@ -1,0 +1,34 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck      # 检查被忽略的 error 返回值
+    - gosimple      # 简化代码
+    - govet         # go vet
+    - ineffassign   # 无效赋值
+    - staticcheck   # 综合静态检查
+    - unused        # 未使用的代码
+    - gofmt         # 格式
+    - misspell      # 常见英文拼写错误
+  disable-all: false
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+  misspell:
+    locale: US
+
+issues:
+  exclude-rules:
+    # 测试文件允许宽松一些
+    - path: _test\.go
+      linters:
+        - errcheck
+    # doc.go 中的结构体仅被 swag 注解引用，编译期看似未使用
+    - path: controller/doc\.go
+      linters:
+        - unused
+  max-issues-per-linter: 0
+  max-same-issues: 0

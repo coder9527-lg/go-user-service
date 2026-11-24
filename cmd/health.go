@@ -21,7 +21,7 @@ var healthCmd = &cobra.Command{
 			fmt.Fprintln(os.Stderr, "health check failed:", err)
 			os.Exit(1)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode != http.StatusOK {
 			fmt.Fprintln(os.Stderr, "unexpected status:", resp.StatusCode)
 			os.Exit(1)
