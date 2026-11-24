@@ -11,8 +11,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// UserRepository 定义 service 需要的持久化能力。
+// 接口定义在消费方（service）而非实现方（dao），是 Go 的惯例：
+// service 只依赖抽象，测试时可注入 fake 实现，无需真实数据库。
+type UserRepository interface {
+	GetByPhone(phone string) (*model.User, error)
+	GetByID(id uint) (*model.User, error)
+	Create(user *model.User) error
+}
+
 // 业务错误：与 HTTP 解耦，由 controller 统一翻译成状态码。
-// controller 只依赖 service 的错误，不再直接依赖 dao，保证分层方向单向。
 var (
 	ErrInvalidPhone       = errors.New("phone must be 11 digits starting with 1")
 	ErrInvalidPassword    = errors.New("password length must be between 6 and 72 characters")
@@ -46,11 +54,13 @@ type LoginInput struct {
 }
 
 // UserService 承载用户相关的业务规则与流程编排。
-type UserService struct{}
+type UserService struct {
+	repo UserRepository
+}
 
-// NewUserService 创建用户服务。
-func NewUserService() *UserService {
-	return &UserService{}
+// NewUserService 通过构造函数注入仓储依赖。
+func NewUserService(repo UserRepository) *UserService {
+	return &UserService{repo: repo}
 }
 
 // Register 注册流程：参数校验 → 查重 → 密码哈希 → 落库。
@@ -67,7 +77,7 @@ func (s *UserService) Register(in RegisterInput) (*model.User, error) {
 	}
 
 	// 手机号唯一校验：唯一索引之外再加一层友好提示。
-	existing, err := dao.GetUserByPhone(in.Phone)
+	existing, err := s.repo.GetByPhone(in.Phone)
 	if err != nil && !errors.Is(err, dao.ErrUserNotFound) {
 		return nil, err
 	}
@@ -85,7 +95,7 @@ func (s *UserService) Register(in RegisterInput) (*model.User, error) {
 		Phone:    in.Phone,
 		Password: string(hashed),
 	}
-	if err := dao.CreateUser(user); err != nil {
+	if err := s.repo.Create(user); err != nil {
 		// 并发注册时唯一索引兜底：把 dao 层错误翻译成业务错误。
 		if errors.Is(err, dao.ErrPhoneDuplicated) {
 			return nil, ErrPhoneRegistered
@@ -98,7 +108,7 @@ func (s *UserService) Register(in RegisterInput) (*model.User, error) {
 // Login 登录流程：查用户 → 校验密码哈希 → 签发 access/refresh 双令牌。
 // 用户不存在与密码错误返回同一个错误，避免被枚举手机号。
 func (s *UserService) Login(in LoginInput) (*common.TokenPair, error) {
-	user, err := dao.GetUserByPhone(in.Phone)
+	user, err := s.repo.GetByPhone(in.Phone)
 	if errors.Is(err, dao.ErrUserNotFound) {
 		return nil, ErrInvalidCredentials
 	}
@@ -128,7 +138,7 @@ func (s *UserService) Refresh(refreshToken string) (string, error) {
 
 // GetByID 按主键查询用户，供 /me 等需要当前用户信息的场景使用。
 func (s *UserService) GetByID(id uint) (*model.User, error) {
-	user, err := dao.GetUserByID(id)
+	user, err := s.repo.GetByID(id)
 	if errors.Is(err, dao.ErrUserNotFound) {
 		return nil, ErrUserNotFound
 	}

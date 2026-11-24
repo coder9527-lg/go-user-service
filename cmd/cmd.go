@@ -10,9 +10,12 @@ import (
 	"time"
 
 	"github.com/coder9527-lg/go-user-service/config"
+	"github.com/coder9527-lg/go-user-service/controller"
+	"github.com/coder9527-lg/go-user-service/dao"
 	"github.com/coder9527-lg/go-user-service/db"
 	"github.com/coder9527-lg/go-user-service/model"
 	router "github.com/coder9527-lg/go-user-service/routers"
+	"github.com/coder9527-lg/go-user-service/service"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -61,8 +64,10 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer func() {
-		if cerr := db.Close(); cerr != nil {
-			logrus.Warnf("close db failed: %v", cerr)
+		if sqlDB, cerr := gormDB.DB(); cerr == nil {
+			if cerr := sqlDB.Close(); cerr != nil {
+				logrus.Warnf("close db failed: %v", cerr)
+			}
 		}
 	}()
 
@@ -71,9 +76,14 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// 依赖注入组装：gorm.DB → repo → service → handler → router。
+	userRepo := dao.NewUserRepo(gormDB)
+	userService := service.NewUserService(userRepo)
+	userHandler := controller.NewUserHandler(userService)
+
 	srv := &http.Server{
 		Addr:              viper.GetString("server.port"),
-		Handler:           router.New(),
+		Handler:           router.New(userHandler),
 		ReadHeaderTimeout: 5 * time.Second, // 防御 Slowloris 慢速攻击
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,

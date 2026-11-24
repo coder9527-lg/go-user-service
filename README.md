@@ -33,6 +33,20 @@ router → controller → service → dao → db/model
 - **dao** 只负责数据存取，把 GORM 错误翻译成 `ErrUserNotFound` 等数据层错误
 - 跨层数据用 DTO（如 `RegisterInput`）传递，不把带 HTTP 标签的结构体泄漏到 service
 
+### 依赖注入与可测试性
+
+依赖在 `cmd` 中统一组装，逐层通过构造函数注入，全程无全局单例：
+
+```
+gorm.DB → dao.UserRepo → service.UserService → controller.UserHandler → router
+```
+
+- `service` 定义 `UserRepository` 接口（接口在消费方定义是 Go 的惯例），
+  只依赖抽象而不依赖具体的 GORM 实现
+- 单元测试用手写的 `fakeUserRepo` 替身注入，**完全不依赖数据库即可测业务规则**
+  （见 `service/user_mock_test.go`），还能注入故障验证错误传播
+- 切换存储实现（如改用其他 ORM）只需实现同一接口，业务代码零改动
+
 ## 快速开始
 
 项目默认使用纯 Go 实现的 SQLite 驱动，**无需安装任何数据库**，开箱即跑：

@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/coder9527-lg/go-user-service/dao"
 	"github.com/coder9527-lg/go-user-service/db"
 	"github.com/coder9527-lg/go-user-service/model"
 	"golang.org/x/crypto/bcrypt"
@@ -14,7 +15,7 @@ import (
 
 var seq uint64
 
-// setupServiceDB 为每个用例准备独立的共享内存库。
+// setupServiceDB 为每个用例准备独立的共享内存库，并组装真实 repo + service。
 func setupServiceDB(t *testing.T) *UserService {
 	t.Helper()
 	n := atomic.AddUint64(&seq, 1)
@@ -25,8 +26,13 @@ func setupServiceDB(t *testing.T) *UserService {
 	if err := gormDB.AutoMigrate(&model.User{}); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
-	t.Cleanup(func() { _ = db.Close() })
-	return NewUserService()
+	t.Cleanup(func() {
+		if sqlDB, err := gormDB.DB(); err == nil {
+			_ = sqlDB.Close()
+		}
+	})
+	repo := dao.NewUserRepo(gormDB)
+	return NewUserService(repo)
 }
 
 func TestRegisterSuccessAndHashedPassword(t *testing.T) {

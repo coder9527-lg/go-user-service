@@ -7,9 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// userService 是控制器依赖的业务服务。
-// 用变量持有而非直接在函数内 new，便于测试时替换为 mock 实现。
-var userService = service.NewUserService()
+// UserHandler 承载用户相关的 HTTP 处理器，通过构造函数注入业务服务。
+type UserHandler struct {
+	userService *service.UserService
+}
+
+// NewUserHandler 创建 UserHandler。
+func NewUserHandler(userService *service.UserService) *UserHandler {
+	return &UserHandler{userService: userService}
+}
 
 type registerRequest struct {
 	Name     string `json:"name" form:"name"`
@@ -38,14 +44,14 @@ type refreshRequest struct {
 // @Failure      422   {object}  response
 // @Failure      409   {object}  response
 // @Router       /users/register [post]
-func Register(c *gin.Context) {
+func (h *UserHandler) Register(c *gin.Context) {
 	var req registerRequest
 	if err := c.ShouldBind(&req); err != nil {
 		fail(c, http.StatusBadRequest, "invalid request params")
 		return
 	}
 
-	user, err := userService.Register(service.RegisterInput{
+	user, err := h.userService.Register(service.RegisterInput{
 		Name:     req.Name,
 		Phone:    req.Phone,
 		Password: req.Password,
@@ -69,14 +75,14 @@ func Register(c *gin.Context) {
 // @Success      200   {object}  response{data=common.TokenPair}
 // @Failure      401   {object}  response
 // @Router       /users/login [post]
-func Login(c *gin.Context) {
+func (h *UserHandler) Login(c *gin.Context) {
 	var req loginRequest
 	if err := c.ShouldBind(&req); err != nil {
 		fail(c, http.StatusBadRequest, "invalid request params")
 		return
 	}
 
-	pair, err := userService.Login(service.LoginInput{
+	pair, err := h.userService.Login(service.LoginInput{
 		Phone:    req.Phone,
 		Password: req.Password,
 	})
@@ -99,14 +105,14 @@ func Login(c *gin.Context) {
 // @Failure      400   {object}  response
 // @Failure      401   {object}  response
 // @Router       /users/refresh [post]
-func Refresh(c *gin.Context) {
+func (h *UserHandler) Refresh(c *gin.Context) {
 	var req refreshRequest
 	if err := c.ShouldBind(&req); err != nil || req.RefreshToken == "" {
 		fail(c, http.StatusBadRequest, "refresh_token is required")
 		return
 	}
 
-	access, err := userService.Refresh(req.RefreshToken)
+	access, err := h.userService.Refresh(req.RefreshToken)
 	if err != nil {
 		writeServiceError(c, err)
 		return

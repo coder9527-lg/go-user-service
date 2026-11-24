@@ -17,7 +17,7 @@ import (
 // @Success      200  {object}  response{data=meResult}
 // @Failure      401  {object}  response
 // @Router       /users/me [get]
-func Me(c *gin.Context) {
+func (h *UserHandler) Me(c *gin.Context) {
 	// 中间件已保证该值存在且类型正确；做一次防御性断言。
 	raw, ok := c.Get(common.ContextUserID)
 	if !ok {
@@ -30,7 +30,7 @@ func Me(c *gin.Context) {
 		return
 	}
 
-	user, err := userService.GetByID(userID)
+	user, err := h.userService.GetByID(userID)
 	if err != nil {
 		writeServiceError(c, err)
 		return

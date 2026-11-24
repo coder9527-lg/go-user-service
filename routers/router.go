@@ -18,8 +18,8 @@ const (
 	authRateWindow = time.Minute
 )
 
-// New 构建并返回 Gin 路由引擎，便于在测试中直接启动。
-func New() *gin.Engine {
+// New 构建并返回 Gin 路由引擎，用户相关 handler 由外部通过依赖注入提供。
+func New(userHandler *controller.UserHandler) *gin.Engine {
 	// 用 gin.New() 而非 gin.Default()，以便用自定义的结构化日志和 Recovery 替换默认中间件。
 	r := gin.New()
 
@@ -43,14 +43,14 @@ func New() *gin.Engine {
 	api := r.Group("/api/v1")
 	{
 		// 公开接口：无需登录，但凭据接口要按 IP 限流防爆破。
-		api.POST("/users/register", common.RateLimit(authLimiter), controller.Register)
-		api.POST("/users/login", common.RateLimit(authLimiter), controller.Login)
-		api.POST("/users/refresh", common.RateLimit(authLimiter), controller.Refresh)
+		api.POST("/users/register", common.RateLimit(authLimiter), userHandler.Register)
+		api.POST("/users/login", common.RateLimit(authLimiter), userHandler.Login)
+		api.POST("/users/refresh", common.RateLimit(authLimiter), userHandler.Refresh)
 
 		// 受保护接口：必须携带有效 access token
 		auth := api.Group("/", common.JWTAuth())
 		{
-			auth.GET("/users/me", controller.Me)
+			auth.GET("/users/me", userHandler.Me)
 		}
 	}
 
@@ -75,6 +75,6 @@ func configureTrustedProxies(r *gin.Engine) {
 }
 
 // Run 在指定端口启动 HTTP 服务。
-func Run(addr string) error {
-	return New().Run(addr)
+func Run(addr string, userHandler *controller.UserHandler) error {
+	return New(userHandler).Run(addr)
 }

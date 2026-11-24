@@ -8,9 +8,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/coder9527-lg/go-user-service/controller"
+	"github.com/coder9527-lg/go-user-service/dao"
 	"github.com/coder9527-lg/go-user-service/db"
 	"github.com/coder9527-lg/go-user-service/model"
 	router "github.com/coder9527-lg/go-user-service/routers"
+	"github.com/coder9527-lg/go-user-service/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,8 +27,16 @@ func setupRouter(t *testing.T) *gin.Engine {
 	if err := gormDB.AutoMigrate(&model.User{}); err != nil {
 		t.Fatalf("auto migrate: %v", err)
 	}
-	t.Cleanup(func() { _ = db.Close() })
-	return router.New()
+	t.Cleanup(func() {
+		if sqlDB, err := gormDB.DB(); err == nil {
+			_ = sqlDB.Close()
+		}
+	})
+	// 与生产一致地组装依赖链：repo → service → handler → router。
+	repo := dao.NewUserRepo(gormDB)
+	userSvc := service.NewUserService(repo)
+	userHandler := controller.NewUserHandler(userSvc)
+	return router.New(userHandler)
 }
 
 func postJSON(t *testing.T, r *gin.Engine, path string, body map[string]string) *httptest.ResponseRecorder {

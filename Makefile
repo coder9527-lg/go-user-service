@@ -33,7 +33,7 @@ vet: ## 静态检查 go vet
 	go vet $(PKG)
 
 # 只检查项目自身的 Go 目录，排除本地模块缓存等非源码目录
-GO_DIRS := cmd common config controller dao db model routers
+GO_DIRS := cmd common config controller dao db model routers service
 
 fmt: ## 格式化代码（含 import 顺序，需要 goimports）
 	@if command -v goimports >/dev/null 2>&1; then \
