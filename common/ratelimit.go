@@ -45,7 +45,11 @@ func (l *IPRateLimiter) Allow(key string) (allow bool, retryAfter time.Duration)
 	now := l.now()
 	w, ok := l.store[key]
 	if !ok || now.After(w.expireAt) {
-		// 首次访问或窗口已过期：开新窗口。
+		// 首次访问或窗口已过期：惰性清理旧条目后开新窗口，
+		// 防止不活跃 IP 的记录永久驻留导致 map 无限增长。
+		if ok {
+			delete(l.store, key)
+		}
 		l.store[key] = &counter{count: 1, expireAt: now.Add(l.window)}
 		return true, 0
 	}
@@ -55,4 +59,11 @@ func (l *IPRateLimiter) Allow(key string) (allow bool, retryAfter time.Duration)
 	}
 	w.count++
 	return true, 0
+}
+
+// Len 返回当前存活的 key 数量，主要用于测试和监控。
+func (l *IPRateLimiter) Len() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return len(l.store)
 }

@@ -22,3 +22,7 @@ jwt:
 cors:
   allowed_origins:
     - "*"
+
+# 可信反向代理网段，决定 ClientIP 是否信任 X-Forwarded-For。
+# 留空=不信任任何代理（直连部署）；放在网关后时配置代理网段，如 ["10.0.0.0/8"]
+trusted_proxies: []

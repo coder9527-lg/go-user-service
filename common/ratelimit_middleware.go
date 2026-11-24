@@ -3,15 +3,13 @@ package common
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-// RateLimit 基于客户端 IP 的限流中间件。
-// limit 为每个窗口允许的最大请求数，window 为窗口时长。
-func RateLimit(limit int, window time.Duration) gin.HandlerFunc {
-	limiter := NewIPRateLimiter(limit, window)
+// RateLimit 基于客户端 IP 的限流中间件，复用调用方传入的 limiter。
+// 多个路由传入同一个 limiter 即可共享配额，避免每个接口各自计数导致总配额翻倍。
+func RateLimit(limiter *IPRateLimiter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		allow, retryAfter := limiter.Allow(c.ClientIP())
 		if !allow {
