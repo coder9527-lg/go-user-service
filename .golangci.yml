@@ -17,6 +17,15 @@ linters:
       check-type-assertions: true
     misspell:
       locale: US
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+      # doc.go 中的结构体仅被 swag 注解引用，编译期看似未使用
+      - path: controller/doc\.go
+        linters:
+          - staticcheck
 
 formatters:
   enable:
@@ -25,11 +34,3 @@ formatters:
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclusions:
-    - path: _test\.go
-      linters:
-        - errcheck
-    # doc.go 中的结构体仅被 swag 注解引用，编译期看似未使用
-    - path: controller/doc\.go
-      linters:
-        - staticcheck
